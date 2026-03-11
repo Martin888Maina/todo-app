@@ -201,6 +201,11 @@ class TaskTile extends StatelessWidget {
                                   ],
                                 ],
                               ),
+                              // Subtask progress bar — only shown when subtasks exist
+                              if ((task.subtasks ?? []).isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _SubtaskProgress(subtasks: task.subtasks!),
+                              ],
                             ],
                           ),
                         ),
@@ -222,6 +227,42 @@ class TaskTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SubtaskProgress extends StatelessWidget {
+  final List<SubTask> subtasks;
+
+  const _SubtaskProgress({required this.subtasks});
+
+  @override
+  Widget build(BuildContext context) {
+    final done = subtasks.where((s) => s.isCompleted).length;
+    final fraction = subtasks.isEmpty ? 0.0 : done / subtasks.length;
+
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 4,
+              backgroundColor: AppColors.surface,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$done/${subtasks.length}',
+          style: const TextStyle(
+            fontSize: 10,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }

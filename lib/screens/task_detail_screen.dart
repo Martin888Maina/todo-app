@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../utils/app_colors.dart';
@@ -7,13 +8,29 @@ import '../utils/app_strings.dart';
 import '../utils/date_helpers.dart';
 import '../widgets/task_form.dart';
 
-class TaskDetailScreen extends ConsumerWidget {
+class TaskDetailScreen extends ConsumerStatefulWidget {
   final Task task;
 
   const TaskDetailScreen({super.key, required this.task});
 
+  @override
+  ConsumerState<TaskDetailScreen> createState() => _TaskDetailScreenState();
+}
+
+class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
+  final _subtaskController = TextEditingController();
+  final _uuid = const Uuid();
+
+  @override
+  void dispose() {
+    _subtaskController.dispose();
+    super.dispose();
+  }
+
+  Task get _task => widget.task;
+
   Color _priorityColor() {
-    switch (task.priority) {
+    switch (_task.priority) {
       case 'high':
         return AppColors.priorityHigh;
       case 'low':
@@ -24,7 +41,7 @@ class TaskDetailScreen extends ConsumerWidget {
   }
 
   String _priorityLabel() {
-    switch (task.priority) {
+    switch (_task.priority) {
       case 'high':
         return AppStrings.high;
       case 'low':
@@ -35,7 +52,7 @@ class TaskDetailScreen extends ConsumerWidget {
   }
 
   Color _categoryColor() {
-    switch (task.category) {
+    switch (_task.category) {
       case 'work':
         return AppColors.categoryWork;
       case 'shopping':
@@ -50,7 +67,7 @@ class TaskDetailScreen extends ConsumerWidget {
   }
 
   String _categoryLabel() {
-    switch (task.category) {
+    switch (_task.category) {
       case 'work':
         return AppStrings.work;
       case 'shopping':
@@ -64,18 +81,18 @@ class TaskDetailScreen extends ConsumerWidget {
     }
   }
 
-  void _openEditForm(BuildContext context) {
+  void _openEditForm() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => TaskForm(existingTask: task),
+      builder: (_) => TaskForm(existingTask: _task),
     );
   }
 
-  Future<void> _deleteTask(BuildContext context, WidgetRef ref) async {
+  Future<void> _deleteTask() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -95,15 +112,44 @@ class TaskDetailScreen extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
-      await ref.read(taskProvider.notifier).deleteTask(task.id);
-      if (context.mounted) Navigator.of(context).pop();
+    if (confirmed == true && mounted) {
+      await ref.read(taskProvider.notifier).deleteTask(_task.id);
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
+  Future<void> _addSubtask() async {
+    final title = _subtaskController.text.trim();
+    if (title.isEmpty) return;
+
+    final subtask = SubTask(id: _uuid.v4(), title: title);
+    _task.subtasks = [...(_task.subtasks ?? []), subtask];
+    await ref.read(taskProvider.notifier).updateTask(_task);
+
+    _subtaskController.clear();
+    setState(() {});
+  }
+
+  Future<void> _toggleSubtask(SubTask subtask) async {
+    subtask.isCompleted = !subtask.isCompleted;
+    await ref.read(taskProvider.notifier).updateTask(_task);
+    setState(() {});
+  }
+
+  Future<void> _deleteSubtask(SubTask subtask) async {
+    _task.subtasks = (_task.subtasks ?? [])
+        .where((s) => s.id != subtask.id)
+        .toList();
+    await ref.read(taskProvider.notifier).updateTask(_task);
+    setState(() {});
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isOverdue = DateHelpers.isOverdue(task.dueDate, task.isCompleted);
+  Widget build(BuildContext context) {
+    final isOverdue = DateHelpers.isOverdue(_task.dueDate, _task.isCompleted);
+    final subtasks = _task.subtasks ?? [];
+    final completedSubs = subtasks.where((s) => s.isCompleted).length;
+    final subProgress = subtasks.isEmpty ? 0.0 : completedSubs / subtasks.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -115,12 +161,12 @@ class TaskDetailScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () => _openEditForm(context),
+            onPressed: _openEditForm,
             tooltip: AppStrings.editTask,
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            onPressed: () => _deleteTask(context, ref),
+            onPressed: _deleteTask,
             tooltip: AppStrings.deleteTask,
           ),
         ],
@@ -130,15 +176,15 @@ class TaskDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title row with completion checkbox
+            // Title with completion toggle
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Checkbox(
-                  value: task.isCompleted,
+                  value: _task.isCompleted,
                   activeColor: AppColors.primary,
                   onChanged: (_) {
-                    ref.read(taskProvider.notifier).toggleCompletion(task.id);
+                    ref.read(taskProvider.notifier).toggleCompletion(_task.id);
                     Navigator.of(context).pop();
                   },
                 ),
@@ -147,14 +193,14 @@ class TaskDetailScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Text(
-                      task.title,
+                      _task.title,
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
-                        color: task.isCompleted
+                        color: _task.isCompleted
                             ? AppColors.textCompleted
                             : AppColors.textPrimary,
-                        decoration: task.isCompleted
+                        decoration: _task.isCompleted
                             ? TextDecoration.lineThrough
                             : null,
                       ),
@@ -163,20 +209,18 @@ class TaskDetailScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Meta chips row
+            // Priority + category chips
             Wrap(
               spacing: 10,
               runSpacing: 8,
               children: [
-                // Priority chip
                 _MetaChip(
                   label: _priorityLabel(),
                   color: _priorityColor(),
                   icon: Icons.flag_outlined,
                 ),
-                // Category chip
                 _MetaChip(
                   label: _categoryLabel(),
                   color: _categoryColor(),
@@ -186,34 +230,38 @@ class TaskDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             const Divider(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Due date
-            if (task.dueDate != null) ...[
+            if (_task.dueDate != null) ...[
               _DetailRow(
                 icon: Icons.calendar_today_outlined,
                 label: AppStrings.dueDate,
-                value: DateHelpers.full(task.dueDate!),
+                value: DateHelpers.full(_task.dueDate!),
                 valueColor: isOverdue ? AppColors.overdueRed : null,
                 trailing: isOverdue
-                    ? const _Badge(label: AppStrings.overdue, color: AppColors.overdueRed)
+                    ? const _Badge(
+                        label: AppStrings.overdue,
+                        color: AppColors.overdueRed,
+                      )
                     : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
             ],
 
             // Created timestamp
             _DetailRow(
               icon: Icons.access_time_outlined,
               label: 'Created',
-              value: DateHelpers.relative(task.createdAt),
+              value: DateHelpers.relative(_task.createdAt),
             ),
-            const SizedBox(height: 20),
 
-            // Description / notes
-            if (task.description != null && task.description!.isNotEmpty) ...[
+            // Notes
+            if (_task.description != null &&
+                _task.description!.isNotEmpty) ...[
+              const SizedBox(height: 20),
               const Divider(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               const Text(
                 'Notes',
                 style: TextStyle(
@@ -225,7 +273,7 @@ class TaskDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                task.description!,
+                _task.description!,
                 style: const TextStyle(
                   fontSize: 15,
                   color: AppColors.textPrimary,
@@ -233,9 +281,127 @@ class TaskDetailScreen extends ConsumerWidget {
                 ),
               ),
             ],
+
+            // Subtasks section
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text(
+                  'Subtasks',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                if (subtasks.isNotEmpty) ...[
+                  const Spacer(),
+                  Text(
+                    '$completedSubs of ${subtasks.length} done',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (subtasks.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: subProgress,
+                  minHeight: 6,
+                  backgroundColor: AppColors.surface,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...subtasks.map(
+                (sub) => _SubtaskRow(
+                  subtask: sub,
+                  onToggle: () => _toggleSubtask(sub),
+                  onDelete: () => _deleteSubtask(sub),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            // Add subtask input
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _subtaskController,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Add a subtask...',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppColors.primary),
+                      ),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    onSubmitted: (_) => _addSubtask(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _addSubtask,
+                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
+                  iconSize: 32,
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SubtaskRow extends StatelessWidget {
+  final SubTask subtask;
+  final VoidCallback onToggle;
+  final VoidCallback onDelete;
+
+  const _SubtaskRow({
+    required this.subtask,
+    required this.onToggle,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Checkbox(
+          value: subtask.isCompleted,
+          activeColor: AppColors.primary,
+          onChanged: (_) => onToggle(),
+        ),
+        Expanded(
+          child: Text(
+            subtask.title,
+            style: TextStyle(
+              fontSize: 14,
+              color: subtask.isCompleted
+                  ? AppColors.textCompleted
+                  : AppColors.textPrimary,
+              decoration:
+                  subtask.isCompleted ? TextDecoration.lineThrough : null,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: onDelete,
+          icon: const Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+        ),
+      ],
     );
   }
 }
@@ -302,10 +468,7 @@ class _DetailRow extends StatelessWidget {
         const SizedBox(width: 10),
         Text(
           '$label: ',
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         Text(
           value,

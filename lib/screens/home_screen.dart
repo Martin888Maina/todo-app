@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../providers/filter_provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_strings.dart';
 import '../widgets/task_form.dart';
@@ -11,6 +12,7 @@ import '../widgets/filter_tabs.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/empty_state.dart';
 import 'task_detail_screen.dart';
+import 'statistics_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -156,6 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final allTasks = ref.watch(taskProvider);
     final visible = _filteredTasks(allTasks);
+    final isDark = ref.watch(themeProvider);
     final isFiltered = ref.watch(statusFilterProvider) != 'all' ||
         ref.watch(searchQueryProvider).isNotEmpty ||
         ref.watch(categoryFilterProvider) != null ||
@@ -183,6 +186,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               )
             : const Text(AppStrings.appName),
         actions: [
+          // Dark/light mode toggle
+          IconButton(
+            icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            tooltip: isDark ? AppStrings.lightMode : AppStrings.darkMode,
+            onPressed: () => ref.read(themeProvider.notifier).toggle(),
+          ),
+          // Statistics screen
+          IconButton(
+            icon: const Icon(Icons.bar_chart_rounded),
+            tooltip: AppStrings.statistics,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+            ),
+          ),
           IconButton(
             icon: Icon(_searchVisible ? Icons.close : Icons.search),
             onPressed: () {
