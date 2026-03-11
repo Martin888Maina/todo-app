@@ -70,14 +70,36 @@ class TaskTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dismissible(
       key: Key(task.id),
-      direction: DismissDirection.endToStart,
+      // Swipe left = delete, swipe right = toggle complete
       background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: AppColors.primary,
+        child: Icon(
+          task.isCompleted ? Icons.undo : Icons.check_circle_outline,
+          color: Colors.white,
+        ),
+      ),
+      secondaryBackground: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         color: AppColors.priorityHigh,
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
-      onDismissed: (_) => onDelete(),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          // Swipe right toggles completion without removing the tile
+          onToggle();
+          return false;
+        }
+        // Swipe left confirms deletion
+        return true;
+      },
+      onDismissed: (direction) {
+        if (direction == DismissDirection.endToStart) {
+          onDelete();
+        }
+      },
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         elevation: 2,
@@ -180,6 +202,15 @@ class TaskTile extends StatelessWidget {
                                 ],
                               ),
                             ],
+                          ),
+                        ),
+                        // Drag handle — used by ReorderableListView in home screen
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: Icon(
+                            Icons.drag_handle,
+                            color: AppColors.textSecondary,
+                            size: 20,
                           ),
                         ),
                       ],

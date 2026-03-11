@@ -52,6 +52,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Future<void> _confirmClearCompleted() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(AppStrings.clearCompletedConfirm),
+        content: const Text(AppStrings.clearCompletedMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(AppStrings.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.priorityHigh),
+            child: const Text(AppStrings.confirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      ref.read(taskProvider.notifier).clearCompleted();
+    }
+  }
+
   // Applies status, search, and category filters together
   List<Task> _filteredTasks(List<Task> all) {
     final status = ref.watch(statusFilterProvider);
@@ -59,20 +83,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final category = ref.watch(categoryFilterProvider);
 
     return all.where((t) {
-      // Status filter
       if (status == 'active' && t.isCompleted) return false;
       if (status == 'completed' && !t.isCompleted) return false;
-
-      // Category filter
       if (category != null && t.category != category) return false;
-
-      // Search filter — checks title and description
       if (query.isNotEmpty) {
         final inTitle = t.title.toLowerCase().contains(query);
         final inDesc = t.description?.toLowerCase().contains(query) ?? false;
         if (!inTitle && !inDesc) return false;
       }
-
       return true;
     }).toList();
   }
@@ -97,6 +115,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final allTasks = ref.watch(taskProvider);
     final visible = _filteredTasks(allTasks);
+    // Reorder only works on the unfiltered list — disable it when filters are active
+    final isFiltered = ref.watch(statusFilterProvider) != 'all' ||
+        ref.watch(searchQueryProvider).isNotEmpty ||
+        ref.watch(categoryFilterProvider) != null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -130,19 +152,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               }
             },
           ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'toggle_all') {
+                ref.read(taskProvider.notifier).toggleAll();
+              } else if (value == 'clear_completed') {
+                _confirmClearCompleted();
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'toggle_all',
+                child: Text(AppStrings.toggleAll),
+              ),
+              const PopupMenuItem(
+                value: 'clear_completed',
+                child: Text(AppStrings.clearCompleted),
+              ),
+            ],
+          ),
         ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Filter tabs
           Container(
             color: AppColors.background,
             child: const FilterTabs(),
           ),
-          // Category chips
           const CategoryChipRow(),
-          // Task counter
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
             child: Text(
@@ -155,7 +193,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const Divider(height: 1),
-          // Task list
           Expanded(
             child: visible.isEmpty
                 ? Center(
@@ -168,21 +205,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       textAlign: TextAlign.center,
                     ),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: visible.length,
-                    itemBuilder: (context, index) {
-                      final task = visible[index];
-                      return TaskTile(
-                        task: task,
-                        onToggle: () => ref
-                            .read(taskProvider.notifier)
-                            .toggleCompletion(task.id),
-                        onTap: () => _openForm(task: task),
-                        onDelete: () => _deleteTask(task),
-                      );
-                    },
-                  ),
+                // Use a regular list when filtered so indexes stay correct
+                : isFiltered
+                    ? ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: visible.length,
+                        itemBuilder: (context, index) {
+                          final task = visible[index];
+                          return TaskTile(
+                            key: Key(task.id),
+                            task: task,
+                            onToggle: () => ref
+                                .read(taskProvider.notifier)
+                                .toggleCompletion(task.id),
+                            onTap: () => _openForm(task: task),
+                            onDelete: () => _deleteTask(task),
+                          );
+                        },
+                      )
+                    : ReorderableListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: visible.length,
+                        onReorder: (oldIndex, newIndex) {
+                          ref
+                              .read(taskProvider.notifier)
+                              .reorderTasks(oldIndex, newIndex);
+                        },
+                        itemBuilder: (context, index) {
+                          final task = visible[index];
+                          return TaskTile(
+                            key: Key(task.id),
+                            task: task,
+                            onToggle: () => ref
+                                .read(taskProvider.notifier)
+                                .toggleCompletion(task.id),
+                            onTap: () => _openForm(task: task),
+                            onDelete: () => _deleteTask(task),
+                          );
+                        },
+                      ),
           ),
         ],
       ),

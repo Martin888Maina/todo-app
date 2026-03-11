@@ -70,4 +70,40 @@ class TaskNotifier extends StateNotifier<List<Task>> {
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     state = updated;
   }
+
+
+  // Removes all completed tasks at once
+  Future<void> clearCompleted() async {
+    final toDelete = state.where((t) => t.isCompleted).toList();
+    for (final t in toDelete) {
+      await HiveService.taskBox.delete(t.id);
+    }
+    state = state.where((t) => !t.isCompleted).toList();
+  }
+
+  // Flips every task to complete if any are pending; otherwise unchecks all
+  Future<void> toggleAll() async {
+    final anyActive = state.any((t) => !t.isCompleted);
+    for (final t in state) {
+      t.isCompleted = anyActive;
+      await t.save();
+    }
+    state = [...state];
+  }
+
+  // Persists the new order after a drag-to-reorder gesture
+  Future<void> reorderTasks(int oldIndex, int newIndex) async {
+    final updated = [...state];
+    if (newIndex > oldIndex) newIndex--;
+    final moved = updated.removeAt(oldIndex);
+    updated.insert(newIndex, moved);
+
+    // Write the new sortOrder values back to Hive
+    for (int i = 0; i < updated.length; i++) {
+      updated[i].sortOrder = i;
+      await updated[i].save();
+    }
+
+    state = updated;
+  }
 }
