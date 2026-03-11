@@ -1,0 +1,196 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../models/task.dart';
+import '../utils/app_colors.dart';
+import '../utils/app_strings.dart';
+
+// Displays a single task row with priority indicator, category chip, and due date
+class TaskTile extends StatelessWidget {
+  final Task task;
+  final VoidCallback onToggle;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const TaskTile({
+    super.key,
+    required this.task,
+    required this.onToggle,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  Color _priorityColor() {
+    switch (task.priority) {
+      case 'high':
+        return AppColors.priorityHigh;
+      case 'low':
+        return AppColors.priorityLow;
+      default:
+        return AppColors.priorityMedium;
+    }
+  }
+
+  Color _categoryColor() {
+    switch (task.category) {
+      case 'work':
+        return AppColors.categoryWork;
+      case 'shopping':
+        return AppColors.categoryShopping;
+      case 'health':
+        return AppColors.categoryHealth;
+      case 'other':
+        return AppColors.categoryOther;
+      default:
+        return AppColors.categoryPersonal;
+    }
+  }
+
+  String _categoryLabel() {
+    switch (task.category) {
+      case 'work':
+        return AppStrings.work;
+      case 'shopping':
+        return AppStrings.shopping;
+      case 'health':
+        return AppStrings.health;
+      case 'other':
+        return AppStrings.other;
+      default:
+        return AppStrings.personal;
+    }
+  }
+
+  bool get _isOverdue {
+    if (task.dueDate == null || task.isCompleted) return false;
+    final today = DateTime.now();
+    return task.dueDate!.isBefore(DateTime(today.year, today.month, today.day));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: Key(task.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: AppColors.priorityHigh,
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      onDismissed: (_) => onDelete(),
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: AppColors.background,
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              // Priority indicator — coloured left border
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  color: _priorityColor(),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: task.isCompleted,
+                          activeColor: AppColors.primary,
+                          onChanged: (_) => onToggle(),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                task.title,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: task.isCompleted
+                                      ? AppColors.textCompleted
+                                      : AppColors.textPrimary,
+                                  decoration: task.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  // Category chip
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _categoryColor().withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _categoryLabel(),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _categoryColor(),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  if (task.dueDate != null) ...[
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      Icons.calendar_today,
+                                      size: 11,
+                                      color: _isOverdue
+                                          ? AppColors.overdueRed
+                                          : AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      _isOverdue
+                                          ? AppStrings.overdue
+                                          : DateFormat('MMM d').format(task.dueDate!),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _isOverdue
+                                            ? AppColors.overdueRed
+                                            : AppColors.textSecondary,
+                                        fontWeight: _isOverdue
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
