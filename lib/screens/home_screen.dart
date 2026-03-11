@@ -9,6 +9,8 @@ import '../widgets/task_form.dart';
 import '../widgets/task_tile.dart';
 import '../widgets/filter_tabs.dart';
 import '../widgets/category_chip.dart';
+import '../widgets/empty_state.dart';
+import 'task_detail_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +21,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _searchVisible = false;
+  bool _sortByPriority = false;
   final _searchController = TextEditingController();
 
   @override
@@ -35,6 +38,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => TaskForm(existingTask: task),
+    );
+  }
+
+  void _openDetail(Task task) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
     );
   }
 
@@ -76,13 +85,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  // Applies status, search, and category filters together
+  // Priority sort order: high=0, medium=1, low=2
+  int _priorityOrder(String p) {
+    if (p == 'high') return 0;
+    if (p == 'medium') return 1;
+    return 2;
+  }
+
   List<Task> _filteredTasks(List<Task> all) {
     final status = ref.watch(statusFilterProvider);
     final query = ref.watch(searchQueryProvider).toLowerCase().trim();
     final category = ref.watch(categoryFilterProvider);
 
-    return all.where((t) {
+    var result = all.where((t) {
       if (status == 'active' && t.isCompleted) return false;
       if (status == 'completed' && !t.isCompleted) return false;
       if (category != null && t.category != category) return false;
@@ -93,6 +108,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
       return true;
     }).toList();
+
+    if (_sortByPriority) {
+      result.sort((a, b) =>
+          _priorityOrder(a.priority).compareTo(_priorityOrder(b.priority)));
+    }
+
+    return result;
   }
 
   String _taskCounterText(List<Task> all) {
@@ -102,23 +124,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return '$activeCount ${AppStrings.tasksLeft}';
   }
 
-  String _emptyMessage() {
+  EmptyState _emptyState() {
     final status = ref.read(statusFilterProvider);
     final query = ref.read(searchQueryProvider);
-    if (query.isNotEmpty) return AppStrings.emptySearch;
-    if (status == 'active') return AppStrings.emptyActive;
-    if (status == 'completed') return AppStrings.emptyCompleted;
-    return AppStrings.emptyAll;
+
+    if (query.isNotEmpty) {
+      return const EmptyState(
+        message: AppStrings.emptySearch,
+        icon: Icons.search_off_rounded,
+      );
+    }
+    if (status == 'active') {
+      return const EmptyState(
+        message: AppStrings.emptyActive,
+        icon: Icons.task_alt_rounded,
+      );
+    }
+    if (status == 'completed') {
+      return const EmptyState(
+        message: AppStrings.emptyCompleted,
+        icon: Icons.hourglass_empty_rounded,
+      );
+    }
+    return const EmptyState(
+      message: AppStrings.emptyAll,
+      icon: Icons.checklist_rounded,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final allTasks = ref.watch(taskProvider);
     final visible = _filteredTasks(allTasks);
-    // Reorder only works on the unfiltered list — disable it when filters are active
     final isFiltered = ref.watch(statusFilterProvider) != 'all' ||
         ref.watch(searchQueryProvider).isNotEmpty ||
-        ref.watch(categoryFilterProvider) != null;
+        ref.watch(categoryFilterProvider) != null ||
+        _sortByPriority;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -158,9 +199,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ref.read(taskProvider.notifier).toggleAll();
               } else if (value == 'clear_completed') {
                 _confirmClearCompleted();
+              } else if (value == 'sort_priority') {
+                setState(() => _sortByPriority = !_sortByPriority);
               }
             },
             itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'sort_priority',
+                child: Text(
+                  _sortByPriority ? 'Sort: Default order' : 'Sort: By priority',
+                ),
+              ),
               const PopupMenuItem(
                 value: 'toggle_all',
                 child: Text(AppStrings.toggleAll),
@@ -195,17 +244,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const Divider(height: 1),
           Expanded(
             child: visible.isEmpty
-                ? Center(
-                    child: Text(
-                      _emptyMessage(),
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                // Use a regular list when filtered so indexes stay correct
+                ? _emptyState()
                 : isFiltered
                     ? ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -218,7 +257,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             onToggle: () => ref
                                 .read(taskProvider.notifier)
                                 .toggleCompletion(task.id),
-                            onTap: () => _openForm(task: task),
+                            onTap: () => _openDetail(task),
                             onDelete: () => _deleteTask(task),
                           );
                         },
@@ -239,7 +278,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             onToggle: () => ref
                                 .read(taskProvider.notifier)
                                 .toggleCompletion(task.id),
-                            onTap: () => _openForm(task: task),
+                            onTap: () => _openDetail(task),
                             onDelete: () => _deleteTask(task),
                           );
                         },
