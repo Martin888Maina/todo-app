@@ -1,0 +1,22 @@
+# Flutter/Dart build artifacts
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Hive generated adapters (regenerate with build_runner)
+*.g.dart
+*.freezed.dart
+
+# The /release folder is intentionally NOT ignored — the APK must be committed
