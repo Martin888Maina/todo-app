@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
+import '../services/notification_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_strings.dart';
 
@@ -76,6 +77,17 @@ class _TaskFormState extends ConsumerState<TaskForm> {
       task.category = _category;
       task.dueDate = _dueDate;
       await ref.read(taskProvider.notifier).updateTask(task);
+
+      // Reschedule notification if due date changed
+      final notifId = task.id.hashCode;
+      await NotificationService.cancel(notifId);
+      if (_dueDate != null) {
+        await NotificationService.scheduleForTask(
+          id: notifId,
+          title: task.title,
+          dueDate: _dueDate!,
+        );
+      }
     } else {
       await ref.read(taskProvider.notifier).addTask(
             title: _titleController.text.trim(),
@@ -86,6 +98,20 @@ class _TaskFormState extends ConsumerState<TaskForm> {
             category: _category,
             dueDate: _dueDate,
           );
+
+      // Schedule a notification for the new task if it has a due date
+      if (_dueDate != null) {
+        final tasks = ref.read(taskProvider);
+        final newTask = tasks.lastWhere(
+          (t) => t.title == _titleController.text.trim(),
+          orElse: () => tasks.last,
+        );
+        await NotificationService.scheduleForTask(
+          id: newTask.id.hashCode,
+          title: newTask.title,
+          dueDate: _dueDate!,
+        );
+      }
     }
 
     if (mounted) Navigator.of(context).pop();

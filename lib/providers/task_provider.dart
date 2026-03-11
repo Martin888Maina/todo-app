@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task.dart';
 import '../services/hive_service.dart';
+import '../services/notification_service.dart';
 
 // Exposes the task list to the rest of the app
 final taskProvider = StateNotifierProvider<TaskNotifier, List<Task>>((ref) {
@@ -52,6 +53,8 @@ class TaskNotifier extends StateNotifier<List<Task>> {
   }
 
   Future<void> deleteTask(String id) async {
+    // Cancel any pending notification before removing the task
+    await NotificationService.cancel(id.hashCode);
     await HiveService.taskBox.delete(id);
     state = state.where((t) => t.id != id).toList();
   }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'services/hive_service.dart';
+import 'services/notification_service.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'providers/theme_provider.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_strings.dart';
@@ -9,15 +12,22 @@ import 'utils/app_strings.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveService.init();
+  await NotificationService.init();
+
+  final prefs = await SharedPreferences.getInstance();
+  final seenOnboarding = prefs.getBool('onboarding_seen') ?? false;
+
   runApp(
-    const ProviderScope(
-      child: TodoApp(),
+    ProviderScope(
+      child: TodoApp(showOnboarding: !seenOnboarding),
     ),
   );
 }
 
 class TodoApp extends ConsumerWidget {
-  const TodoApp({super.key});
+  final bool showOnboarding;
+
+  const TodoApp({super.key, required this.showOnboarding});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,7 +66,7 @@ class TodoApp extends ConsumerWidget {
         cardColor: AppColors.darkSurface,
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: showOnboarding ? const OnboardingScreen() : const HomeScreen(),
     );
   }
 }

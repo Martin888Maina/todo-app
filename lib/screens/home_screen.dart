@@ -268,14 +268,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         itemCount: visible.length,
                         itemBuilder: (context, index) {
                           final task = visible[index];
-                          return TaskTile(
+                          return _AnimatedTile(
                             key: Key(task.id),
-                            task: task,
-                            onToggle: () => ref
-                                .read(taskProvider.notifier)
-                                .toggleCompletion(task.id),
-                            onTap: () => _openDetail(task),
-                            onDelete: () => _deleteTask(task),
+                            index: index,
+                            child: TaskTile(
+                              task: task,
+                              onToggle: () => ref
+                                  .read(taskProvider.notifier)
+                                  .toggleCompletion(task.id),
+                              onTap: () => _openDetail(task),
+                              onDelete: () => _deleteTask(task),
+                            ),
                           );
                         },
                       )
@@ -289,26 +292,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         },
                         itemBuilder: (context, index) {
                           final task = visible[index];
-                          return TaskTile(
+                          return _AnimatedTile(
                             key: Key(task.id),
-                            task: task,
-                            onToggle: () => ref
-                                .read(taskProvider.notifier)
-                                .toggleCompletion(task.id),
-                            onTap: () => _openDetail(task),
-                            onDelete: () => _deleteTask(task),
+                            index: index,
+                            child: TaskTile(
+                              task: task,
+                              onToggle: () => ref
+                                  .read(taskProvider.notifier)
+                                  .toggleCompletion(task.id),
+                              onTap: () => _openDetail(task),
+                              onDelete: () => _deleteTask(task),
+                            ),
                           );
                         },
                       ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openForm(),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
+      floatingActionButton: Semantics(
+        label: AppStrings.addTask,
+        button: true,
+        child: FloatingActionButton(
+          onPressed: () => _openForm(),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          child: const Icon(Icons.add),
+        ),
       ),
+    );
+  }
+}
+
+// Slides and fades each tile in when it first appears in the list
+class _AnimatedTile extends StatefulWidget {
+  final int index;
+  final Widget child;
+
+  const _AnimatedTile({super.key, required this.index, required this.child});
+
+  @override
+  State<_AnimatedTile> createState() => _AnimatedTileState();
+}
+
+class _AnimatedTileState extends State<_AnimatedTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    // Stagger the animation slightly based on index so tiles cascade in
+    final delay = Duration(milliseconds: 30 * widget.index.clamp(0, 10));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.08),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
+    Future.delayed(delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }

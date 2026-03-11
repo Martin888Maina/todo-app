@@ -131,10 +131,15 @@ class TaskTile extends StatelessWidget {
                         horizontal: 12, vertical: 10),
                     child: Row(
                       children: [
-                        Checkbox(
-                          value: task.isCompleted,
-                          activeColor: AppColors.primary,
-                          onChanged: (_) => onToggle(),
+                        Semantics(
+                          label: task.isCompleted
+                              ? 'Mark ${task.title} incomplete'
+                              : 'Mark ${task.title} complete',
+                          child: Checkbox(
+                            value: task.isCompleted,
+                            activeColor: AppColors.primary,
+                            onChanged: (_) => onToggle(),
+                          ),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
