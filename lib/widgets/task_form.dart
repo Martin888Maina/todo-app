@@ -121,7 +121,7 @@ class _TaskFormState extends ConsumerState<TaskForm> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
       child: Form(
         key: _formKey,
@@ -131,10 +131,10 @@ class _TaskFormState extends ConsumerState<TaskForm> {
           children: [
             Text(
               _isEditing ? AppStrings.editTask : AppStrings.addTask,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 16),
@@ -150,7 +150,7 @@ class _TaskFormState extends ConsumerState<TaskForm> {
                 ),
               ),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Title is required' : null,
+                  (v == null || v.trim().isEmpty) ? AppStrings.titleRequired : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -237,3 +237,4 @@ class _TaskFormState extends ConsumerState<TaskForm> {
     );
   }
 }
+

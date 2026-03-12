@@ -94,4 +94,19 @@ class AppStrings {
   // Theme
   static const String lightMode = 'Light mode';
   static const String darkMode = 'Dark mode';
+
+  // Sorting
+  static const String sortByPriority = 'Sort: By priority';
+  static const String sortDefault = 'Sort: Default order';
+
+  // Validation
+  static const String titleRequired = 'Title is required';
+
+  // Task detail screen
+  static const String taskDetails = 'Task Details';
+  static const String deleteConfirm = 'Are you sure you want to delete this task?';
+  static const String created = 'Created';
+  static const String notes = 'Notes';
+  static const String subtasksLabel = 'Subtasks';
+  static const String addSubtask = 'Add a subtask...';
 }

@@ -36,6 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -165,10 +166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _sortByPriority;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
         elevation: 0,
         title: _searchVisible
             ? TextField(
@@ -224,7 +222,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               PopupMenuItem(
                 value: 'sort_priority',
                 child: Text(
-                  _sortByPriority ? 'Sort: Default order' : 'Sort: By priority',
+                  _sortByPriority ? AppStrings.sortDefault : AppStrings.sortByPriority,
                 ),
               ),
               const PopupMenuItem(
@@ -242,18 +240,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            color: AppColors.background,
-            child: const FilterTabs(),
-          ),
+          const FilterTabs(),
           const CategoryChipRow(),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
             child: Text(
               _taskCounterText(allTasks),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 fontWeight: FontWeight.w500,
               ),
             ),

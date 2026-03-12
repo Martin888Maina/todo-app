@@ -104,7 +104,6 @@ class TaskTile extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: AppColors.background,
         child: IntrinsicHeight(
           child: Row(
             children: [
@@ -153,7 +152,7 @@ class TaskTile extends StatelessWidget {
                                   fontWeight: FontWeight.w500,
                                   color: task.isCompleted
                                       ? AppColors.textCompleted
-                                      : AppColors.textPrimary,
+                                      : Theme.of(context).colorScheme.onSurface,
                                   decoration: task.isCompleted
                                       ? TextDecoration.lineThrough
                                       : null,
@@ -186,7 +185,7 @@ class TaskTile extends StatelessWidget {
                                       size: 11,
                                       color: _isOverdue
                                           ? AppColors.overdueRed
-                                          : AppColors.textSecondary,
+                                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -197,7 +196,7 @@ class TaskTile extends StatelessWidget {
                                         fontSize: 11,
                                         color: _isOverdue
                                             ? AppColors.overdueRed
-                                            : AppColors.textSecondary,
+                                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                         fontWeight: _isOverdue
                                             ? FontWeight.w600
                                             : FontWeight.normal,
@@ -215,11 +214,11 @@ class TaskTile extends StatelessWidget {
                           ),
                         ),
                         // Drag handle — used by ReorderableListView in home screen
-                        const Padding(
-                          padding: EdgeInsets.only(left: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
                           child: Icon(
                             Icons.drag_handle,
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                             size: 20,
                           ),
                         ),

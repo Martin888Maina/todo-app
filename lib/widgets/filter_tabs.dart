@@ -58,7 +58,9 @@ class _Tab extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.primary
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
             ),
           ),
         ),

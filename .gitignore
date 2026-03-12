@@ -19,4 +19,11 @@ Thumbs.db
 *.g.dart
 *.freezed.dart
 
+# Non-Android platform directories — this app targets Android only
+ios/
+linux/
+macos/
+web/
+windows/
+
 # The /release folder is intentionally NOT ignored — the APK must be committed

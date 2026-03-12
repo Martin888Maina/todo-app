@@ -85,6 +85,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -97,7 +98,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text(AppStrings.deleteTask),
-        content: const Text('Are you sure you want to delete this task?'),
+        content: const Text(AppStrings.deleteConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -152,12 +153,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final subProgress = subtasks.isEmpty ? 0.0 : completedSubs / subtasks.length;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Task Details'),
+        title: const Text(AppStrings.taskDetails),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -199,7 +197,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         fontWeight: FontWeight.w600,
                         color: _task.isCompleted
                             ? AppColors.textCompleted
-                            : AppColors.textPrimary,
+                            : Theme.of(context).colorScheme.onSurface,
                         decoration: _task.isCompleted
                             ? TextDecoration.lineThrough
                             : null,
@@ -252,7 +250,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             // Created timestamp
             _DetailRow(
               icon: Icons.access_time_outlined,
-              label: 'Created',
+              label: AppStrings.created,
               value: DateHelpers.relative(_task.createdAt),
             ),
 
@@ -263,7 +261,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               const Divider(),
               const SizedBox(height: 12),
               const Text(
-                'Notes',
+                AppStrings.notes,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -274,9 +272,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 _task.description!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   height: 1.6,
                 ),
               ),
@@ -289,7 +287,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             Row(
               children: [
                 const Text(
-                  'Subtasks',
+                  AppStrings.subtasksLabel,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -338,7 +336,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                     controller: _subtaskController,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
-                      hintText: 'Add a subtask...',
+                      hintText: AppStrings.addSubtask,
                       border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: AppColors.primary),
@@ -391,7 +389,7 @@ class _SubtaskRow extends StatelessWidget {
               fontSize: 14,
               color: subtask.isCompleted
                   ? AppColors.textCompleted
-                  : AppColors.textPrimary,
+                  : Theme.of(context).colorScheme.onSurface,
               decoration:
                   subtask.isCompleted ? TextDecoration.lineThrough : null,
             ),
@@ -475,7 +473,7 @@ class _DetailRow extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: valueColor ?? AppColors.textPrimary,
+            color: valueColor ?? Theme.of(context).colorScheme.onSurface,
           ),
         ),
         if (trailing != null) ...[
